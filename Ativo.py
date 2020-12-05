@@ -36,6 +36,7 @@ class IntraDay():
 
 		self._initializeIntradayStats()
 
+
 	def _initializeIntradayStats(self):
 		self.stats = {} # empty curly cria empty dict e não empty set
 
@@ -111,6 +112,49 @@ class IntraDay():
 			spikeToPreVolFactor = volumeToSpike/volPre
 		self.stats['spikeToPreVolFactor'] = spikeToPreVolFactor
 
+	def checkForTrade(self, short_after, exit_target, exit_stop):
+		trade = {} # se não tiver trade nesse dia o dictionary fica vazio
+		first = self._core[0]
+
+		for bar in self._core: 
+			# ENTRY POINT
+			if not bool(trade): # se nenhum trade tiver sido encontrado, procura por trades
+				variation = (bar['high'] - first['open'])/first['open']
+				if variation >= short_after:
+					trade['entry'] = bar
+					trade['price'] = (1+short_after)*first['open']
+					trade['stop'] = (1+exit_stop)*trade['price']
+					trade['target'] = (1-exit_target)*trade['price'] # lembrar que pra short o target é menor
+			# EXIT POINTS
+			else: # se já tivermos encontrado algum trade, vamos procurar exits
+				if bar['high'] >= trade['stop']:
+					trade['exit'] = bar
+					trade['profit'] = -exit_stop
+					break # só pararemos a execução do loop apos encontrar uma entry e um stop
+				if bar['low'] <= trade['target']:
+					trade['exit'] = bar
+					trade['profit'] = exit_target
+					break
+				if bar == self._core[-1]: # se for a última barra, fecha o trade no close da ultima barra
+					trade['exit'] = bar
+					trade['profit'] = -(bar['close'] - trade['price'])/trade['price']
+
+		if not bool(trade): # testa se o dictionary com dados sobre um possível trade está vazio
+			return None
+
+		return trade # se o dictionary não estiver vazio, vai retornar os dados em trade
+
+		# inicia trade como None
+		# guarda informações sobre primeiro elemento
+
+		# itera até achar algum elemento que satisfaça entry point
+			# se achar, já vai guardando alguns dados como # entry bar
+			# itera até achar algum elemento que satisfaça exit point
+
+		# retorna trade que pode ser None
+
+		# informações sobre trade: hora de entrada
+
 	def __repr__(self):
 
 		s = ''
@@ -157,6 +201,8 @@ class Ativo():
 		self._initIntradayData()
 		self._initOuterDayStats()
 
+	def initIntradayFromDate():
+		pass
 
 	# são os dados brutos divididos em dias, mas ainda não divididos em core, pre, pos e stats
 	def _initDayData(self):
@@ -184,6 +230,13 @@ class Ativo():
 				lastClose = dayBefore._core[-1]['close']
 				day.stats['gap'] = (firstOpen - lastClose)/lastClose
 				dayBefore = day
+
+	# esse método filtra o dia de interesse e retorna um objeto da classe Intraday (aka ativo-dia)
+	# https://stackoverflow.com/questions/34609935/passing-a-function-with-two-arguments-to-filter-in-python/34610018
+	# https://stackoverflow.com/questions/7125467/find-object-in-list-that-has-attribute-equal-to-some-value-that-meets-any-condi
+	# daria pra fazer com filter mas no final das contas next() é a melhor opção
+	def fromDay(self,d):
+		return next(intra for intra in self.intraDays if intra.dataDay[0]['time'].date() == d )
 
 	def __repr__(self):
 

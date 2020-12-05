@@ -5,6 +5,7 @@ class FileManager():
 	'''
 	Organiza os nomes e os paths de cada arquivo.
 	Permite descobrir o path de um arquivo usando o seu ticker
+	Como tarefa adicional, organiza arquivos auxiliares como o arquivo com free_floats
 	------------------------------------------------------------------------------------------
 	Exemplo: fm = fman.FileManager()
 			 fm['AAMC']
@@ -25,6 +26,7 @@ class FileManager():
 		self.ticker = df.to_dict()['path']
 		# list(di.keys())[2] # se quisesse indexar um dictionary numericamente
 		self.size = len(self.ticker)
+		self._initFreeFloatFile()
 
 	def __getitem__(self,i): # é o operador de quando for chamado com []
 		return self.ticker[i]
@@ -37,3 +39,19 @@ class FileManager():
 
 	def show(self):
 		print(self.ticker)
+
+	def _initFreeFloatFile(self):
+		filename = 'america_2020-11-28.csv'
+		df = pd.read_csv(filename)
+		df = df[['Ticker', 'Shares Float']] # apenas colunas que interessam, transformaremos essas duas cols em dictionary
+		df = df.dropna()
+		df = df[ df['Shares Float']>=1 ]
+		df['Shares Float'] = df['Shares Float'].astype('int64') # em teoria essa expressão é errada pois joga coisas numa 
+																# slice que é copia
+		self.freeFloat = dict(zip(df['Ticker'],df['Shares Float']))
+
+	def getFreeFloatNames(self):
+		return list( self.freeFloat.keys() )
+
+	def getFreeFloat(self,tick):
+		return self.freeFloat[tick]

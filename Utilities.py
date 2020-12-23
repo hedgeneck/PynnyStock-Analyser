@@ -1,3 +1,5 @@
+import pandas as pd
+
 def divideDays(bl):
 	'''
 	bl: bar list, is a list of raw days which we will divide day by day
@@ -23,3 +25,14 @@ def divideDays(bl):
 		dbl.append(temp_day) # como é o último elemento, não precisa ser copy
 
 	return dbl
+
+def drawdown(s):
+	dd = pd.Series(dtype='float64') # drawdown (dd) will be used to calculate maximum drawdown (mdd)
+	# especificamos explicitamente o dtype para evitar uma warning
+
+	for i in s.index:
+		_dd = s[i]/max(s[:i+1].max(),1)-1 # i+1 pois slicing não é inclusive do ultimo termo
+		# como não queremos dar append de 1 em s, usamos max(X,1) onde
+		# X = s[:i+1].max()
+		dd = dd.append( pd.Series( _dd ), ignore_index=True ) 
+	return abs( dd.min() )

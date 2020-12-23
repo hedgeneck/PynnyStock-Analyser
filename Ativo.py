@@ -119,12 +119,13 @@ class IntraDay():
 		for bar in self._core: 
 			# ENTRY POINT
 			if not bool(trade): # se nenhum trade tiver sido encontrado, procura por trades
-				variation = (bar['high'] - first['open'])/first['open']
-				if variation >= short_after:
-					trade['entry'] = bar
-					trade['price'] = (1+short_after)*first['open']
-					trade['stop'] = (1+exit_stop)*trade['price']
-					trade['target'] = (1-exit_target)*trade['price'] # lembrar que pra short o target é menor
+				if bar != self._core[-1]:
+					variation = (bar['high'] - first['open'])/first['open']
+					if variation >= short_after:
+						trade['entry'] = bar
+						trade['price'] = (1+short_after)*first['open']
+						trade['stop'] = (1+exit_stop)*trade['price']
+						trade['target'] = (1-exit_target)*trade['price'] # lembrar que pra short o target é menor
 			# EXIT POINTS
 			else: # se já tivermos encontrado algum trade, vamos procurar exits
 				if bar['high'] >= trade['stop']:
@@ -144,17 +145,6 @@ class IntraDay():
 
 		return trade # se o dictionary não estiver vazio, vai retornar os dados em trade
 
-		# inicia trade como None
-		# guarda informações sobre primeiro elemento
-
-		# itera até achar algum elemento que satisfaça entry point
-			# se achar, já vai guardando alguns dados como # entry bar
-			# itera até achar algum elemento que satisfaça exit point
-
-		# retorna trade que pode ser None
-
-		# informações sobre trade: hora de entrada
-
 	def __repr__(self):
 
 		s = ''
@@ -170,7 +160,6 @@ class IntraDay():
 		for b in self._pos:
 			s = s + f"{b['time'].time()} open: {b['open']} high: {b['high']} low: {b['low']} close: {b['close']} volume: {b['volume']}\n"
 		return s
-
 
 class Ativo():
 	'''
@@ -201,8 +190,25 @@ class Ativo():
 		self._initIntradayData()
 		self._initOuterDayStats()
 
-	def initIntradayFromDate():
-		pass
+	@staticmethod # usamos @staticmethod e não @classmethod pois não precisaremos instanciar a classe com cls
+					# na verdade nem usamos name
+	def initIntradayFromDate(name, path, d): # d é a data em formato datetime.date
+		# https://stackoverflow.com/questions/15718068/search-file-and-find-exact-match-and-print-line
+		data = []
+		with open(path, 'r') as file:
+			lines = [line for line in file if line.startswith(d.strftime("%Y-%m-%d"))]
+		lines.reverse()
+		for line in lines:
+			tokens = line.split(',')
+			bar = { 'time':datetime.datetime.strptime(tokens[0], '%Y-%m-%d %H:%M:%S'),
+					'open':float(tokens[1]),
+					'high':float(tokens[2]),
+					'low':float(tokens[3]),
+					'close':float(tokens[4]),
+					'volume':int(tokens[5])}
+			data.append(bar)
+
+		return IntraDay(data)
 
 	# são os dados brutos divididos em dias, mas ainda não divididos em core, pre, pos e stats
 	def _initDayData(self):
@@ -239,22 +245,6 @@ class Ativo():
 		return next(intra for intra in self.intraDays if intra.dataDay[0]['time'].date() == d )
 
 	def __repr__(self):
-
-#		# showing self.data
-#		s = ''
-#		for t in self.data:
-#			s = s + f"{t['time']} open: {t['open']} high: {t['high']} low: {t['low']} close: {t['close']}\n"
-#		return s
-
-#		# showing self.dataDays
-#		s = ''
-#		for d in self.dataDays:
-#			s = s + f"{d[0]['time'].date()}\n"
-#			for t in d:
-#				s = s + f"{t['time'].time()} open: {t['open']} high: {t['high']} low: {t['low']} close: {t['close']} volume: {t['volume']}\n"
-#		return s
-
-		# showing self.intraDays
 		s=''
 		s = s + f"{self.intraDays}"
 		return s
